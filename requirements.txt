@@ -1,0 +1,9 @@
+speechrecognition
+pygame
+pyaudio
+gtts
+requests
+openai
+python-dotenv
+AppOpener
+ttkbootstrap

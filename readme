@@ -1,0 +1,146 @@
+🤖 JARVIS – AI Voice Assistant (Python)
+
+JARVIS is a desktop-based AI-powered voice assistant built using Python. It listens for voice commands, performs system and web-based tasks, and responds using text-to-speech. The project includes a modern GUI and supports AI-driven conversational responses using Perplexity AI.
+
+📌 Features
+
+🎙️ Wake-word based voice activation (“Jarvis”, “Hey Jarvis”)
+
+🧠 AI-powered responses using Perplexity API
+
+🖥️ Modern desktop GUI built with Tkinter + ttkbootstrap
+
+🔊 Text-to-speech using Google Text-to-Speech (gTTS)
+
+🌐 Open websites (Google, YouTube, LinkedIn, etc.)
+
+▶️ Play songs via YouTube search
+
+🖱️ Open desktop applications using voice commands
+
+📡 Control system features (Wi-Fi, Bluetooth – Windows only)
+
+📰 Fetch and read latest news headlines
+
+🧵 Multi-threaded execution for smooth UI performance
+
+📦 Convert project into a standalone .exe using PyInstaller
+
+🗂️ Project Structure
+JARVIS/
+│
+├── main.py                # Core voice assistant logic
+├── JARVIS_gui.py          # GUI interface
+├── requirements.txt       # Python dependencies
+├── .env                   # API keys (not pushed to GitHub)
+├── .gitignore             # Ignored files and folders
+├── icon.ico               # App icon
+├── build_exe.ps1          # PowerShell script to build EXE
+├── JARVIS_gui.spec        # PyInstaller configuration
+└── README.md              # Project documentation
+
+⚙️ Technologies Used
+
+Programming Language: Python 3
+
+GUI: Tkinter, ttkbootstrap
+
+Speech Recognition: SpeechRecognition, PyAudio
+
+Text-to-Speech: gTTS, pygame
+
+AI Integration: Perplexity AI (OpenAI-compatible API)
+
+Environment Management: python-dotenv
+
+System Control: AppOpener, subprocess, ctypes
+
+Packaging: PyInstaller
+
+🔐 Environment Variables
+
+Create a .env file in the project root and add:
+
+PERPLEXITY_API_KEY=your_perplexity_api_key
+NEWS_API_KEY=your_newsapi_key
+
+
+⚠️ Do not upload .env to GitHub. It is already included in .gitignore.
+
+📦 Installation & Setup
+1️⃣ Clone the Repository
+git clone https://github.com/your-username/JARVIS.git
+cd JARVIS
+
+2️⃣ Create Virtual Environment (Recommended)
+python -m venv .venv
+.venv\Scripts\activate   # Windows
+
+3️⃣ Install Dependencies
+pip install -r requirements.txt
+
+4️⃣ Run the Application
+python JARVIS_gui.py
+
+🏗️ Build Executable (.exe)
+
+To generate a Windows executable:
+
+.\build_exe.ps1
+
+
+Or manually:
+
+pyinstaller JARVIS_gui.spec
+
+
+The .exe file will be available in the dist/ folder.
+
+🎤 Example Voice Commands
+
+"Jarvis" → Activate assistant
+
+"Open Google"
+
+"Play Believer song"
+
+"Open Chrome"
+
+"Turn on WiFi"
+
+"Read news"
+
+"What is artificial intelligence?"
+
+🖥️ Supported Platform
+
+✅ Windows (Fully supported)
+
+⚠️ Linux / macOS (Partial – system controls not implemented)
+
+🚀 Future Enhancements
+
+Turn OFF Wi-Fi / Bluetooth
+
+Add system monitoring (CPU, RAM, battery)
+
+Improve wake-word detection
+
+Add custom skills and plugins
+
+Cross-platform support
+
+👨‍💻 Author
+
+Prateek Jha
+Aspiring Software Engineer
+Tech Stack: Python, AI, Desktop Applications, Automation
+
+📜 License
+
+This project is licensed under the MIT License.
+You are free to use, modify, and distribute it with attribution.
+© 2024 Prateek Jha. All rights reserved.
+Feel free to contribute and suggest improvements!
+---
+Thank you for checking out JARVIS! If you have any questions or feedback, please open an issue or contact me directly. Enjoy using your AI voice assistant!
