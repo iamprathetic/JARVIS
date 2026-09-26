@@ -18,6 +18,7 @@ wheelhouse/
 # PyInstaller
 # PyInstaller build artifacts and caches
 *.spec
+!JARVIS_gui.spec
 *.pyz
 localpycs/
 warn-*.txt
@@ -67,8 +68,5 @@ coverage.xml
 # Ignore egg-info produced during packaging
 JarvisAssistant.egg-info/
 
-# Ignore Python bytecode and packaging metadata
-__pycache__/
-*.pyc
-*.pyo
-
+# Temporary speech audio
+*.mp3
