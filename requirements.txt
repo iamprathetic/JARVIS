@@ -6,4 +6,4 @@ requests==2.32.4
 openai==1.96.1
 python-dotenv==1.1.1
 AppOpener==1.7; sys_platform == "win32"
-ttkbootstrap==1.14.2
+pywebview==6.2.1

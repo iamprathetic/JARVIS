@@ -5,7 +5,7 @@ a = Analysis(
     ['JARVIS_gui.py'],
     pathex=[],
     binaries=[],
-    datas=[('icon.ico', '.')],  # never bundle .env: anyone with the .exe could extract the keys
+    datas=[('icon.ico', '.'), ('ui', 'ui')],  # never bundle .env: anyone with the .exe could extract the keys
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

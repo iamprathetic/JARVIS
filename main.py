@@ -16,7 +16,7 @@ import requests
 import speech_recognition as sr
 from dotenv import load_dotenv
 from gtts import gTTS
-from openai import AuthenticationError, OpenAI as OpenAIClient, RateLimitError
+from openai import APIError, AuthenticationError, OpenAI as OpenAIClient, RateLimitError
 
 IS_WINDOWS = platform.system() == "Windows"
 
@@ -49,7 +49,32 @@ APP_DIR = _app_dir()
 load_dotenv(os.path.join(APP_DIR, ".env"))
 load_dotenv(os.path.join(os.environ.get("APPDATA", ""), "Jarvis", ".env"))
 
-PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY")
+# Any OpenAI-compatible provider works. Pick a preset with AI_PROVIDER, or point
+# AI_BASE_URL / AI_MODEL / AI_API_KEY at another service.
+AI_PROVIDERS = {
+    "groq": {
+        "base_url": "https://api.groq.com/openai/v1",
+        "key_env": "GROQ_API_KEY",
+        "model": "openai/gpt-oss-20b",
+        "signup": "https://console.groq.com/keys",
+    },
+    "perplexity": {
+        "base_url": "https://api.perplexity.ai",
+        "key_env": "PERPLEXITY_API_KEY",
+        "model": "sonar-pro",
+        "signup": "https://console.perplexity.ai",
+    },
+}
+AI_PROVIDER = os.getenv("AI_PROVIDER", "groq").strip().lower()
+_ai_preset = AI_PROVIDERS.get(AI_PROVIDER, {})
+AI_KEY_NAME = _ai_preset.get("key_env", "AI_API_KEY")
+AI_API_KEY = os.getenv(AI_KEY_NAME) or os.getenv("AI_API_KEY")
+AI_BASE_URL = os.getenv("AI_BASE_URL") or _ai_preset.get("base_url")
+AI_MODEL = os.getenv("AI_MODEL") or _ai_preset.get("model")
+AI_SIGNUP_URL = _ai_preset.get("signup")
+# Groq's GPT-OSS models can search the web server-side, for questions about current events.
+AI_WEB_SEARCH = os.getenv("AI_WEB_SEARCH", "on").strip().lower() not in ("off", "false", "no", "0")
+
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 NEWS_COUNTRY = os.getenv("NEWS_COUNTRY", "us")
 NEWS_COUNT = 5
@@ -143,39 +168,63 @@ QUESTION_START = re.compile(r"^(what is|what are|what does|who|why|how|explain|d
 
 def _clean_for_speech(text):
     text = re.sub(r"\s*\[\d+(?:,\s*\d+)*\]", "", text)  # citation markers like [1] or [1, 2]
+    text = re.sub(r"\s*【[^】]*】", "", text)  # GPT-OSS web citations like 【3†L10-L15】
     text = re.sub(r"\*+|`+|^#+\s*", "", text, flags=re.MULTILINE)  # markdown
+    text = re.sub(r"^\s*(?:[-•]|\d+[.)])\s+", "", text, flags=re.MULTILINE)  # list bullets and numbers
+    text = re.sub(r"[‐‑‒]", "-", text)  # unusual hyphens GPT-OSS likes to use
     return re.sub(r"\s+", " ", text).strip()
 
 
 _ai_client = None
 
 
+def _ai_extra_options():
+    """Provider-specific request options; the request is retried without them if they fail."""
+    if AI_PROVIDER != "groq" or "gpt-oss" not in AI_MODEL:
+        return {}
+    options = {"reasoning_effort": "low"}  # keeps spoken replies quick
+    if AI_WEB_SEARCH:
+        options.update(tools=[{"type": "browser_search"}], tool_choice="auto")
+    return options
+
+
 def aiProcess(command):
     global _ai_client
-    if not PERPLEXITY_API_KEY:
-        return "My AI isn't set up yet. Please add a Perplexity API key to the .env file."
+    if not AI_BASE_URL or not AI_MODEL:
+        return f"I don't know the AI provider {AI_PROVIDER}. Please check AI_PROVIDER in the .env file."
+    if not AI_API_KEY:
+        return f"My AI isn't set up yet. Please add {AI_KEY_NAME.replace('_', ' ')} to the .env file."
+    provider = AI_PROVIDER.title()
+    messages = [
+        {"role": "system", "content": (
+            "You are a virtual assistant named Jarvis, skilled in general tasks like Alexa and "
+            "Google Assistant. Your answers are read aloud, so reply in two or three short "
+            "sentences of plain text with no markdown, lists, links or citations."
+        )},
+        {"role": "user", "content": command}
+    ]
     try:
         if _ai_client is None:
-            _ai_client = OpenAIClient(api_key=PERPLEXITY_API_KEY, base_url="https://api.perplexity.ai", timeout=30)
-        completion = _ai_client.chat.completions.create(
-            model="sonar-pro",
-            messages=[
-                {"role": "system", "content": (
-                    "You are a virtual assistant named Jarvis, skilled in general tasks like Alexa and "
-                    "Google Assistant. Your answers are read aloud, so reply in two or three short "
-                    "sentences of plain text with no markdown, lists or links."
-                )},
-                {"role": "user", "content": command}
-            ]
-        )
+            _ai_client = OpenAIClient(api_key=AI_API_KEY, base_url=AI_BASE_URL, timeout=30)
+        extra = _ai_extra_options()
+        try:
+            completion = _ai_client.chat.completions.create(model=AI_MODEL, messages=messages, **extra)
+        except (AuthenticationError, RateLimitError):
+            raise
+        except APIError as e:
+            if not extra:
+                raise
+            # e.g. web search results too large for the free tier's per-minute token limit
+            print(f"[AI error] {type(e).__name__}: {e} (retrying without web search)")
+            completion = _ai_client.chat.completions.create(model=AI_MODEL, messages=messages)
         answer = completion.choices[0].message.content or ""
     except (AuthenticationError, RateLimitError) as e:
         print(f"[AI error] {type(e).__name__}: {e}")
         if "quota" in str(e).lower():
-            return "My Perplexity account is out of credits. Please add credits to use AI answers."
+            return f"My {provider} account is out of credits. Please add credits to use AI answers."
         if isinstance(e, AuthenticationError):
-            return "My Perplexity API key was rejected. Please check the key in the .env file."
-        return "I'm getting too many requests right now. Please try again in a moment."
+            return f"My {provider} API key was rejected. Please check {AI_KEY_NAME.replace('_', ' ')} in the .env file."
+        return "I've hit my AI usage limit for now. Please try again in a minute."
     except Exception as e:
         print(f"[AI error] {type(e).__name__}: {e}")
         return "Sorry, I couldn't reach my AI service right now."
